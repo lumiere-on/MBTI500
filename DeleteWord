@@ -1,0 +1,34 @@
+//참고 링크:https://velog.io/@yugyeong_929/AI-web-service-project-MBTIgram-%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B-%EC%A0%84%EC%B2%98%EB%A6%AC-%EB%B0%8F-EDA
+
+import re 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from bs4 import BeautifulSoup
+import pandas as pd
+
+# Google Drive 마운트
+from google.colab import drive
+drive.mount('/content/drive')
+
+#데이터셋 로드
+MBTI = pd.read_csv("/content/drive/MyDrive/MBTI500_23/MBTI 500.csv")
+
+#데이터셋 전처리(2)
+def preprocess(data):
+  data=re.sub("hope",'',data)
+
+  #데이터셋 전처리(2)MBTI 자체가 포함된 경우 제외
+  pers_types = ['infp' ,'infj', 'intp', 'intj', 'istp', 'isfp', 'isfj','istp', 'entp', 'enfp', 'entj', 'enfj', 'estp', 'esfp' ,'esfj' ,'estj']
+  for types in pers_types:
+    data = data.replace(types, '')
+
+after_post = []
+for post in MBTI['posts']:
+  after_post.append(preprocess(post))
+after_post[:5]
+
+MBTI['posts']=after_post
+
+#결측치 확인
+print(MBTI.isnull().sum())

@@ -1,0 +1,90 @@
+제거하는 코드
+import pandas as pd
+import nltk
+from nltk.tokenize import word_tokenize
+
+# nltk의 토크나이저 다운로드
+nltk.download('punkt')
+df = pd.read_csv("/content/drive/MyDrive/MBTI 500.csv")
+
+mbti_low_frequency_words = { 'infp': ['Quadra', 'critical', 'really', 'post', 'response'], 'esfp': ['aura', 'supervisor', 'allegro', 'rigorous', 'hub'], 'entp': ['secure', 'step', 'actual', 'implement', 'sometimes'], 'isfp': ['always', 'regardless', 'still', 'chat', 'along'], 'intj': ['tool', 'people', 'interaction', 'excuse', 'use'], 'entj': ['well', 'right', 'psychoanal', 'point', 'mourn'], 'intp': ['goal', 'personally', 'appeal', 'probably', 'wrong'], 'istp': ['like', 'hard', 'friend', 'interest', 'college'], 'esfj': ['relative', 'component', 'classical', 'thread', 'ambient'], 'enfj': ['repeatedly', 'unconscious', 'recharge', 'superficial', 'inferior'], 'enfp': ['judgement', 'unhealthy', 'allegation', 'acceptance', 'brainstorm'], 'estp': ['stereotype', 'accreditation', 'accountability', 'realness', 'experience'], 'estj': ['cognition', 'intention', 'gryffindor', 'stringent', 'introspect'], 'infj': ['clarify', 'onus', 'endorse', 'coerce', 'disclaimer'], 'isfj': ['subjective', 'disastrous', 'platonic', 'subconscious', 'enneagram'], 'istj': ['aesthetic', 'roommate', 'mundane', 'catastrophe', 'procrastination'] }
+
+for mbti, words_to_remove in mbti_low_frequency_words.items():
+    # 해당 MBTI 타입의 글만 필터링
+    mbti_posts = df[df['type'] == mbti.upper()]['posts']
+    for index, post in mbti_posts.iteritems():
+       # 토큰화
+        tokens = word_tokenize(post)
+        # 제거할 단어 필터링
+        tokens = [word for word in tokens if word.lower() not in [w.lower() for w in words_to_remove]]
+        # 다시 문자열로 합치기
+        df.at[index, 'posts'] = ' '.join(tokens)
+df.to_csv('updated_csv_file.csv', index=False)
+
+
+#제거되었는지 확인하는 코드
+import pandas as pd
+
+# 수정된 파일을 읽어옵니다
+df = pd.read_csv('updated_csv_file.csv')
+
+# MBTI 유형별로 제거해야 할 단어 목록
+mbti_low_frequency_words = { 'infp': ['Quadra', 'critical', 'really', 'post', 'response'], 'esfp': ['aura', 'supervisor', 'allegro', 'rigorous', 'hub'], 'entp': ['secure', 'step', 'actual', 'implement', 'sometimes'], 'isfp': ['always', 'regardless', 'still', 'chat', 'along'], 'intj': ['tool', 'people', 'interaction', 'excuse', 'use'], 'entj': ['well', 'right', 'psychoanal', 'point', 'mourn'], 'intp': ['goal', 'personally', 'appeal', 'probably', 'wrong'], 'istp': ['like', 'hard', 'friend', 'interest', 'college'], 'esfj': ['relative', 'component', 'classical', 'thread', 'ambient'], 'enfj': ['repeatedly', 'unconscious', 'recharge', 'superficial', 'inferior'], 'enfp': ['judgement', 'unhealthy', 'allegation', 'acceptance', 'brainstorm'], 'estp': ['stereotype', 'accreditation', 'accountability', 'realness', 'experience'], 'estj': ['cognition', 'intention', 'gryffindor', 'stringent', 'introspect'], 'infj': ['clarify', 'onus', 'endorse', 'coerce', 'disclaimer'], 'isfj': ['subjective', 'disastrous', 'platonic', 'subconscious', 'enneagram'], 'istj': ['aesthetic', 'roommate', 'mundane', 'catastrophe', 'procrastination'] }
+  
+
+# 각 MBTI 유형별로 단어가 제거되었는지 확인
+for mbti, words_to_remove in mbti_low_frequency_words.items():
+    # 해당 MBTI 타입의 글만 필터링
+    mbti_posts = df[df['type'] == mbti.upper()]['posts']
+    
+    for word in words_to_remove:
+        # 각 단어가 포함된 게시물이 있는지 검사
+        if mbti_posts.str.contains(word, case=False).any():
+            print(f"MBTI Type: {mbti.upper()}, Word: '{word}' still exists in the dataset.")
+
+
+
+
+#파일의 첫 5행을 불러오면 제거가 된 것 같은데 코드로 검사를 해보면 제거가 안되었다고 나와서 고민입니다ㅠㅠㅠㅠ
+import pandas as pd
+import nltk
+from nltk.tokenize import word_tokenize
+
+# nltk의 토크나이저 다운로드
+nltk.download('punkt')
+
+# 수정된 파일을 다시 읽어옵니다
+df = pd.read_csv('updated_csv_file.csv')
+
+# 제거되지 않은 단어 목록
+remaining_words = {
+    'infp': ['Quadra', 'critical', 'really', 'post'],
+    'esfp': ['aura', 'hub'],
+    'entp': ['secure', 'step', 'actual', 'implement', 'sometimes'],
+    'isfp': ['always', 'regardless', 'still', 'chat', 'along'],
+    'intj': ['tool', 'people', 'interaction', 'excuse', 'use'],
+    'entj': ['well', 'right', 'psychoanal', 'point', 'mourn'],
+    'intp': ['goal', 'personally', 'appeal', 'probably', 'wrong'],
+    'istp': ['like', 'hard', 'friend', 'interest', 'college'],
+    'esfj': ['relative'],
+    'enfj': ['unconscious', 'superficial', 'inferior'],
+    'enfp': ['judgement', 'brainstorm'],
+    'estp': ['experience'],
+    'estj': ['cognition', 'intention', 'introspect'],
+    'infj': ['clarify', 'onus', 'endorse'],
+    'isfj': ['subjective', 'platonic', 'subconscious', 'enneagram'],
+    'istj': ['aesthetic']
+}
+for mbti, words_to_remove in remaining_words.items():
+    # 해당 MBTI 타입의 글만 필터링
+    mbti_filter = df['type'] == mbti.upper()
+    for index, post in df[mbti_filter].iterrows():
+        # 토큰화
+        tokens = word_tokenize(post['posts'])
+        # 제거할 단어 필터링
+        tokens = [word for word in tokens if word.lower() not in [w.lower() for w in words_to_remove]]
+        # 다시 문자열로 합치기
+        df.at[index, 'posts'] = ' '.join(tokens)
+
+# 데이터 다시 저장
+df.to_csv('updated_csv_file.csv', index=False)

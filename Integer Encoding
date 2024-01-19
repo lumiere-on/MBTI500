@@ -1,0 +1,17 @@
+type열 정수 인코딩
+from sklearn.preprocessing import LabelEncoder
+import pandas as pd
+
+# 파일 로드
+file_path = '/content/drive/My Drive/processed_updated_csv_file.csv'
+df = pd.read_csv(file_path)
+
+# LabelEncoder 인스턴스 생성
+label_encoder = LabelEncoder()
+
+# MBTI 유형 열('type')에 대한 라벨 인코딩 적용
+df['type_encoded'] = label_encoder.fit_transform(df['type'])
+
+# 결과 확인
+print(df[['type', 'type_encoded']].tail(50))
+

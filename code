@@ -1,0 +1,117 @@
+import nltk
+nltk.download('punkt')
+import pandas as pd
+import re
+import numpy as np
+from google.colab import drive
+from nltk.tokenize import word_tokenize
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, LSTM, Bidirectional, Dense, Dropout
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report
+
+# Google Drive 마운트
+drive.mount('/content/drive')
+
+# 파일 읽기
+file_path = '/content/drive/MyDrive/Colab Notebooks/MBTI 500.csv'
+df = pd.read_csv(file_path)
+
+# 데이터 전처리
+def preprocess(data):
+    data = re.sub("hope", '', data)
+    pers_types = ['infp', 'infj', 'intp', 'intj', 'istp', 'isfp', 'isfj', 'istp', 'entp', 'enfp', 'entj', 'enfj', 'estp',
+                  'esfp', 'esfj', 'estj']
+    for types in pers_types:
+        data = data.replace(types, '')
+    return data
+
+df['posts'] = df['posts'].apply(preprocess)
+
+# 낮은 빈도 단어 제거
+mbti_low_frequency_words = { 'esfp': ['aura', 'supervisor', 'allegro', 'rigorous', 'hub'],
+    'entp': ['secure', 'step', 'actual', 'implement', 'sometimes'],
+    'isfp': ['always', 'regardless', 'still', 'chat', 'along'],
+    'intj': ['tool', 'people', 'interaction', 'excuse', 'use'],
+    'entj': ['well', 'right', 'psychoanal', 'point', 'mourn'],
+    'intp': ['goal', 'personally', 'appeal', 'probably', 'wrong'],
+    'istp': ['like', 'hard', 'friend', 'interest', 'college'],
+    'esfj': ['relative', 'component', 'classical', 'thread', 'ambient'],
+    'enfj': ['repeatedly', 'unconscious', 'recharge', 'superficial', 'inferior'],
+    'enfp': ['judgement', 'unhealthy', 'allegation', 'acceptance', 'brainstorm'],
+    'estp': ['stereotype', 'accreditation', 'accountability', 'realness', 'experience'],
+    'estj': ['cognition', 'intention', 'gryffindor', 'stringent', 'introspect'],
+    'infj': ['clarify', 'onus', 'endorse', 'coerce', 'disclaimer'],
+    'isfj': ['subjective', 'disastrous', 'platonic', 'subconscious', 'enneagram'],
+    'istj': ['aesthetic', 'roommate', 'mundane', 'catastrophe', 'procrastination']
+}
+
+for mbti, words_to_remove in mbti_low_frequency_words.items():
+    mbti_posts = df[df['type'] == mbti.upper()]['posts']
+    for index, post in mbti_posts.iteritems():
+        tokens = word_tokenize(post)
+        tokens = [word for word in tokens if word.lower() not in [w.lower() for w in words_to_remove]]
+        df.at[index, 'posts'] = ' '.join(tokens)
+
+# 수정된 파일 저장
+df.to_csv('updated_csv_file.csv', index=False)
+
+# LabelEncoder 인스턴스 생성
+label_encoder = LabelEncoder()
+
+# MBTI 유형 열('type')에 대한 라벨 인코딩 적용
+df['type_encoded'] = label_encoder.fit_transform(df['type'])
+
+# 데이터 분할
+X_train, X_test, y_train, y_test = train_test_split(df['posts'], df['type_encoded'], test_size=0.2, random_state=42)
+
+# Tokenizer 객체 생성 및 정수 인코딩 수행
+tokenizer = Tokenizer(num_words=5000)
+tokenizer.fit_on_texts(X_train)
+
+# 텍스트를 정수 시퀀스로 변환
+X_train_sequences = tokenizer.texts_to_sequences(X_train)
+X_test_sequences = tokenizer.texts_to_sequences(X_test)
+
+# 시퀀스를 패딩하여 길이를 맞추기
+X_train_padded = pad_sequences(X_train_sequences)
+X_test_padded = pad_sequences(X_test_sequences, maxlen=X_train_padded.shape[1])
+
+# 입력 시퀀스의 길이를 얻기
+input_sequence_length = X_train_padded.shape[1]
+
+# 임베딩 차원 설정
+embedding_dim = 50
+
+# 모델 구성
+model = Sequential()
+model.add(Embedding(input_dim=5000, output_dim=embedding_dim, input_length=input_sequence_length))
+model.add(LSTM(100, return_sequences=True))
+model.add(Dropout(0.25))
+model.add(Bidirectional(LSTM(50)))
+model.add(Dropout(0.25))
+# 다중 클래스 분류 모델에서 출력 노드 수를 클래스 수에 맞게 설정하고 softmax 활성화 함수 사용
+model.add(Dense(16, activation='softmax'))
+
+# 모델 요약
+model.summary()
+
+# 모델 컴파일
+model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+# 모델 훈련
+epochs = 1
+batch_size = 64
+model.fit(X_train_padded, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2)
+
+# 모델 평가
+y_pred = model.predict(X_test_padded)
+# y_test를 정수 형태로 사용
+y_test_int = y_test.astype(int)
+y_pred_classes = np.argmax(y_pred, axis=1)
+
+# 분류 보고서 출력
+print(classification_report(y_test_int, y_pred_classes))

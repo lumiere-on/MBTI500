@@ -1,0 +1,95 @@
+<type열 정수 인코딩>
+from sklearn.preprocessing import LabelEncoder
+import pandas as pd
+
+# 파일 로드
+file_path = '/content/drive/My Drive/processed_updated_csv_file.csv'
+df = pd.read_csv(file_path)
+
+# LabelEncoder 인스턴스 생성
+label_encoder = LabelEncoder()
+
+# MBTI 유형 열('type')에 대한 라벨 인코딩 적용
+df['type_encoded'] = label_encoder.fit_transform(df['type'])
+
+# 결과 확인
+print(df[['type', 'type_encoded']].tail(50))
+
+
+
+
+<posts열 정수 인코딩-방법1>
+#tokenizer로 정수 인코딩
+import pandas as pd
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+# Excel 파일 로드
+file_path = "/content/drive/MyDrive/MBTI 500.csv"  # 파일 경로
+df = pd.read_csv(file_path)
+
+# 'posts' 열에서 텍스트 데이터 추출
+preprocessed_sentences = df['posts'].tolist()
+
+# Tokenizer 객체 생성 및 정수 인코딩 수행
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(preprocessed_sentences)
+
+# 결과 출력
+print('정수인코딩 전 (처음 5개 문장): ', preprocessed_sentences[:5], "\n")
+print("단어와 인덱스 (일부):", {k: tokenizer.word_index[k] for k in list(tokenizer.word_index)[:5]}, "\n")
+print("단어와 빈도수 (일부):", {k: tokenizer.word_counts[k] for k in list(tokenizer.word_counts)[:5]}, "\n")
+print("정수인코딩 후 (처음 5개 문장):", tokenizer.texts_to_sequences(preprocessed_sentences)[:5])
+
+
+
+
+
+<posts열 정수 인코딩-방법2>
+!pip install torchtext
+import torch
+from torchtext.data.utils import get_tokenizer
+from torchtext.vocab import build_vocab_from_iterator
+from torch.utils.data import DataLoader
+import pandas as pd
+from nltk.tokenize import word_tokenize
+import nltk
+nltk.download('punkt')
+
+# 데이터 로드
+df = pd.read_csv('/content/drive/My Drive/processed_updated_csv_file.csv')
+
+# 토큰화 함수 정의 (NLTK를 사용)
+tokenizer = get_tokenizer(word_tokenize)
+
+# 어휘 사전 구축을 위한 토큰화 함수 정의
+def yield_tokens(data_iter):
+    for text in data_iter:
+        if isinstance(text, str):  # 텍스트가 문자열인지 확인
+            yield tokenizer(text)
+
+# 어휘 사전 구축
+vocab = build_vocab_from_iterator(yield_tokens(df['posts']), specials=["<unk>", "<pad>"])
+vocab.set_default_index(vocab["<unk>"])
+
+# 텍스트를 정수 시퀀스로 변환하는 함수
+def text_pipeline(x):
+    return vocab(tokenizer(x.lower()))
+
+# 데이터셋 클래스 정의
+class MBTIDataset(torch.utils.data.Dataset):
+    def __init__(self, df, text_pipeline):
+        self.posts = df['posts'].tolist()
+        self.text_pipeline = text_pipeline
+
+    def __len__(self):
+        return len(self.posts)
+
+    def __getitem__(self, idx):
+        text = self.posts[idx]
+        return torch.tensor(self.text_pipeline(text), dtype=torch.int64)
+
+# 데이터셋 객체 생성
+dataset = MBTIDataset(df, text_pipeline)
+
+# 데이터 로더 생성
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True)

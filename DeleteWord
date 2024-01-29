@@ -16,7 +16,6 @@ MBTI = pd.read_csv("/content/drive/MyDrive/MBTI500_23/MBTI 500.csv")
 
 #데이터셋 전처리(2)
 def preprocess(data):
-  data=re.sub("hope",'',data)
 
   #데이터셋 전처리(2)MBTI 자체가 포함된 경우 제외
   pers_types = ['infp' ,'infj', 'intp', 'intj', 'istp', 'isfp', 'isfj','istp', 'entp', 'enfp', 'entj', 'enfj', 'estp', 'esfp' ,'esfj' ,'estj']
